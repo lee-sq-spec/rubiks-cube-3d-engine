@@ -15,6 +15,10 @@ class PlanetAnnihilator {
     this.counterAttacks = [];
     
     this.mouse = { x: 0, y: 0, isDown: false };
+    this.weaponCharge = 0;
+    this.maxCharge = 100;
+    this.isCharging = false;
+    this.chargeStartTime = 0;
     
     this.initializePlanets();
     this.setupEventListeners();
@@ -35,16 +39,22 @@ class PlanetAnnihilator {
       x: centerX,
       y: centerY,
       radius: 120,
+      shape: 'sphere',
       color: '#4a90e2',
       secondaryColor: '#2e7d32',
+      tertiaryColor: '#1565c0',
       population: 7800000000,
       maxPopulation: 7800000000,
+      species: '人类',
+      civilization: 'II',
+      cities: 12847,
       shield: 100,
       maxShield: 100,
       integrity: 100,
       atmosphere: 0.8,
       defenseType: 'magnetic',
       craters: [],
+      continents: this.generateContinents(),
       defenseSystem: {
         type: 'storm',
         cooldown: 0,
@@ -57,16 +67,22 @@ class PlanetAnnihilator {
       x: centerX,
       y: centerY,
       radius: 100,
+      shape: 'sphere',
       color: '#d32f2f',
       secondaryColor: '#bf360c',
-      population: 0,
-      maxPopulation: 0,
+      tertiaryColor: '#8d1e1e',
+      population: 2500000,
+      maxPopulation: 2500000,
+      species: '火星殖民者',
+      civilization: 'I',
+      cities: 47,
       shield: 60,
       maxShield: 60,
       integrity: 100,
       atmosphere: 0.1,
       defenseType: 'volcanic',
       craters: [],
+      polarCaps: true,
       defenseSystem: {
         type: 'lava',
         cooldown: 0,
@@ -79,16 +95,22 @@ class PlanetAnnihilator {
       x: centerX,
       y: centerY,
       radius: 115,
+      shape: 'sphere',
       color: '#ffa726',
       secondaryColor: '#ff8f00',
+      tertiaryColor: '#e65100',
       population: 0,
       maxPopulation: 0,
+      species: '无',
+      civilization: '0',
+      cities: 0,
       shield: 150,
       maxShield: 150,
       integrity: 100,
       atmosphere: 2.0,
       defenseType: 'toxic',
       craters: [],
+      cloudLayers: 3,
       defenseSystem: {
         type: 'acid',
         cooldown: 0,
@@ -101,22 +123,153 @@ class PlanetAnnihilator {
       x: centerX,
       y: centerY,
       radius: 200,
+      shape: 'gas_giant',
       color: '#ff7043',
       secondaryColor: '#d84315',
+      tertiaryColor: '#bf360c',
       population: 0,
       maxPopulation: 0,
+      species: '无',
+      civilization: '0',
+      cities: 0,
       shield: 300,
       maxShield: 300,
       integrity: 100,
       atmosphere: 5.0,
       defenseType: 'storm',
       craters: [],
+      stormBands: 8,
+      greatRedSpot: true,
       defenseSystem: {
         type: 'lightning',
         cooldown: 0,
         maxCooldown: 150
       }
     });
+    
+    this.planets.set('kepler', {
+      name: '开普勒-442b',
+      x: centerX,
+      y: centerY,
+      radius: 140,
+      shape: 'super_earth',
+      color: '#4caf50',
+      secondaryColor: '#2e7d32',
+      tertiaryColor: '#1b5e20',
+      population: 15600000000,
+      maxPopulation: 15600000000,
+      species: '开普勒人',
+      civilization: 'III',
+      cities: 28934,
+      shield: 200,
+      maxShield: 200,
+      integrity: 100,
+      atmosphere: 1.2,
+      defenseType: 'energy',
+      craters: [],
+      rings: false,
+      defenseSystem: {
+        type: 'plasma',
+        cooldown: 0,
+        maxCooldown: 180
+      }
+    });
+    
+    this.planets.set('titan', {
+      name: '土卫六',
+      x: centerX,
+      y: centerY,
+      radius: 90,
+      shape: 'moon',
+      color: '#ff9800',
+      secondaryColor: '#f57c00',
+      tertiaryColor: '#e65100',
+      population: 890000,
+      maxPopulation: 890000,
+      species: '泰坦居民',
+      civilization: 'I',
+      cities: 23,
+      shield: 80,
+      maxShield: 80,
+      integrity: 100,
+      atmosphere: 1.5,
+      defenseType: 'methane',
+      craters: [],
+      methaneLakes: true,
+      defenseSystem: {
+        type: 'hydrocarbon',
+        cooldown: 0,
+        maxCooldown: 220
+      }
+    });
+    
+    this.planets.set('proxima', {
+      name: '比邻星b',
+      x: centerX,
+      y: centerY,
+      radius: 110,
+      shape: 'tidally_locked',
+      color: '#e91e63',
+      secondaryColor: '#ad1457',
+      tertiaryColor: '#880e4f',
+      population: 4200000000,
+      maxPopulation: 4200000000,
+      species: '比邻星人',
+      civilization: 'II',
+      cities: 8765,
+      shield: 120,
+      maxShield: 120,
+      integrity: 100,
+      atmosphere: 0.6,
+      defenseType: 'radiation',
+      craters: [],
+      dayNightSide: true,
+      defenseSystem: {
+        type: 'stellar',
+        cooldown: 0,
+        maxCooldown: 160
+      }
+    });
+    
+    this.planets.set('crystalline', {
+      name: '水晶星',
+      x: centerX,
+      y: centerY,
+      radius: 130,
+      shape: 'crystalline',
+      color: '#9c27b0',
+      secondaryColor: '#7b1fa2',
+      tertiaryColor: '#4a148c',
+      population: 890000000,
+      maxPopulation: 890000000,
+      species: '水晶生命体',
+      civilization: 'IV',
+      cities: 1247,
+      shield: 400,
+      maxShield: 400,
+      integrity: 100,
+      atmosphere: 0.3,
+      defenseType: 'crystal',
+      craters: [],
+      crystalFormations: 12,
+      defenseSystem: {
+        type: 'resonance',
+        cooldown: 0,
+        maxCooldown: 120
+      }
+    });
+  }
+  
+  generateContinents() {
+    const continents = [];
+    for (let i = 0; i < 7; i++) {
+      continents.push({
+        angle: (Math.PI * 2 / 7) * i + Math.random() * 0.5,
+        size: 0.3 + Math.random() * 0.4,
+        shape: Math.random() > 0.5 ? 'irregular' : 'elongated'
+      });
+    }
+    return continents;
   }
   
   setupEventListeners() {
@@ -149,11 +302,12 @@ class PlanetAnnihilator {
       this.mouse.isDown = true;
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
-      this.fireWeapon();
+      this.startWeaponActivation();
     });
     
-    this.canvas.addEventListener('mouseup', () => {
+    this.canvas.addEventListener('mouseup', (e) => {
       this.mouse.isDown = false;
+      this.endWeaponActivation();
     });
     
     this.canvas.addEventListener('mousemove', (e) => {
@@ -168,9 +322,62 @@ class PlanetAnnihilator {
     });
   }
   
+  startWeaponActivation() {
+    const weaponConfig = this.getWeaponConfig(this.currentWeapon);
+    const activation = weaponConfig.activation;
+    
+    switch (activation) {
+      case 'instant':
+        this.fireWeapon();
+        break;
+      case 'charge':
+        this.isCharging = true;
+        this.chargeStartTime = Date.now();
+        this.weaponCharge = 0;
+        break;
+      case 'hold':
+      case 'channel':
+      case 'sustained':
+        this.isCharging = true;
+        this.chargeStartTime = Date.now();
+        break;
+      default:
+        this.fireWeapon();
+    }
+  }
+  
+  endWeaponActivation() {
+    const weaponConfig = this.getWeaponConfig(this.currentWeapon);
+    const activation = weaponConfig.activation;
+    
+    switch (activation) {
+      case 'charge':
+        if (this.weaponCharge >= 30) {
+          this.fireWeapon();
+        }
+        break;
+      case 'hold':
+      case 'channel':
+      case 'sustained':
+        if (this.isCharging) {
+          this.fireWeapon();
+        }
+        break;
+    }
+    
+    this.isCharging = false;
+    this.weaponCharge = 0;
+  }
+  
   fireWeapon() {
     const planet = this.planets.get(this.currentPlanet);
     const weaponConfig = this.getWeaponConfig(this.currentWeapon);
+    
+    // Calculate damage based on charge
+    let finalDamage = weaponConfig.damage;
+    if (this.weaponCharge > 0) {
+      finalDamage *= (1 + this.weaponCharge / 100);
+    }
     
     const projectile = {
       id: Date.now() + Math.random(),
@@ -180,15 +387,19 @@ class PlanetAnnihilator {
       targetX: planet.x,
       targetY: planet.y,
       speed: weaponConfig.speed,
-      damage: weaponConfig.damage,
+      damage: finalDamage,
       color: weaponConfig.color,
       trail: [],
       life: weaponConfig.life || 1000,
-      special: weaponConfig.special || {}
+      special: weaponConfig.special || {},
+      charge: this.weaponCharge
     };
     
     this.projectiles.push(projectile);
     this.createWeaponEffect(projectile);
+    
+    this.weaponCharge = 0;
+    this.isCharging = false;
   }
   
   getWeaponConfig(weaponType) {
@@ -198,6 +409,7 @@ class PlanetAnnihilator {
         damage: 25,
         color: '#ff6b35',
         life: 2000,
+        activation: 'click',
         special: { explosive: true, trailType: 'smoke' }
       },
       'guided-missile': {
@@ -205,6 +417,7 @@ class PlanetAnnihilator {
         damage: 30,
         color: '#ff3333',
         life: 3000,
+        activation: 'hold',
         special: { guided: true, trailType: 'fire' }
       },
       'laser': {
@@ -212,6 +425,7 @@ class PlanetAnnihilator {
         damage: 15,
         color: '#00ff00',
         life: 100,
+        activation: 'instant',
         special: { instant: true, penetrating: true }
       },
       'burst-laser': {
@@ -219,6 +433,7 @@ class PlanetAnnihilator {
         damage: 40,
         color: '#ffff00',
         life: 200,
+        activation: 'charge',
         special: { burst: true, explosive: true }
       },
       'super-laser': {
@@ -226,6 +441,7 @@ class PlanetAnnihilator {
         damage: 80,
         color: '#ff00ff',
         life: 150,
+        activation: 'channel',
         special: { piercing: true, shockwave: true }
       },
       'asteroid': {
@@ -233,6 +449,7 @@ class PlanetAnnihilator {
         damage: 60,
         color: '#8b4513',
         life: 4000,
+        activation: 'trajectory',
         special: { massive: true, gravity: true }
       },
       'bomb': {
@@ -240,6 +457,7 @@ class PlanetAnnihilator {
         damage: 50,
         color: '#333333',
         life: 2500,
+        activation: 'delay',
         special: { chainExplosion: true, area: true }
       },
       'black-hole': {
@@ -247,6 +465,7 @@ class PlanetAnnihilator {
         damage: 100,
         color: '#000000',
         life: 5000,
+        activation: 'sustained',
         special: { gravitational: true, absorption: true }
       },
       'railgun': {
@@ -254,6 +473,7 @@ class PlanetAnnihilator {
         damage: 45,
         color: '#00ffff',
         life: 80,
+        activation: 'precision',
         special: { electromagnetic: true, piercing: true }
       },
       'freeze-ray': {
@@ -261,7 +481,56 @@ class PlanetAnnihilator {
         damage: 20,
         color: '#87ceeb',
         life: 1500,
+        activation: 'sweep',
         special: { freezing: true, slowing: true }
+      },
+      'plasma-cannon': {
+        speed: 6,
+        damage: 70,
+        color: '#ff4081',
+        life: 1200,
+        activation: 'burst',
+        special: { plasma: true, melting: true }
+      },
+      'gravity-bomb': {
+        speed: 1.8,
+        damage: 90,
+        color: '#673ab7',
+        life: 3500,
+        activation: 'orbital',
+        special: { gravitational: true, implosion: true }
+      },
+      'nano-swarm': {
+        speed: 4,
+        damage: 35,
+        color: '#607d8b',
+        life: 2800,
+        activation: 'spread',
+        special: { swarm: true, adaptive: true }
+      },
+      'quantum-torpedo': {
+        speed: 12,
+        damage: 85,
+        color: '#e1bee7',
+        life: 1800,
+        activation: 'phase',
+        special: { quantum: true, phasing: true }
+      },
+      'solar-flare': {
+        speed: 30,
+        damage: 120,
+        color: '#ffc107',
+        life: 500,
+        activation: 'solar',
+        special: { stellar: true, radiation: true }
+      },
+      'void-lance': {
+        speed: 40,
+        damage: 150,
+        color: '#1a1a1a',
+        life: 300,
+        activation: 'pierce',
+        special: { void: true, reality_tear: true }
       }
     };
     
@@ -717,11 +986,46 @@ class PlanetAnnihilator {
       (planet.population / 1000000).toFixed(1) + 'M' :
       planet.population.toLocaleString();
     
+    document.getElementById('species').textContent = planet.species;
+    document.getElementById('civilization').textContent = planet.civilization;
+    document.getElementById('cities').textContent = planet.cities.toLocaleString();
+    
     document.getElementById('shield-fill').style.width = 
       `${(planet.shield / planet.maxShield) * 100}%`;
     
     document.getElementById('integrity').textContent = 
       `${Math.max(0, planet.integrity).toFixed(1)}%`;
+  }
+  
+  updateWeaponCharge() {
+    if (this.isCharging) {
+      const elapsed = Date.now() - this.chargeStartTime;
+      const weaponConfig = this.getWeaponConfig(this.currentWeapon);
+      
+      switch (weaponConfig.activation) {
+        case 'charge':
+          this.weaponCharge = Math.min(100, (elapsed / 20));
+          document.getElementById('charge-text').textContent = '充能中...';
+          break;
+        case 'hold':
+          this.weaponCharge = Math.min(100, (elapsed / 30));
+          document.getElementById('charge-text').textContent = '蓄力中...';
+          break;
+        case 'channel':
+          this.weaponCharge = Math.min(100, (elapsed / 25));
+          document.getElementById('charge-text').textContent = '引导中...';
+          break;
+        case 'sustained':
+          this.weaponCharge = Math.min(100, (elapsed / 40));
+          document.getElementById('charge-text').textContent = '维持中...';
+          break;
+      }
+      
+      document.getElementById('charge-fill').style.width = `${this.weaponCharge}%`;
+    } else {
+      document.getElementById('charge-fill').style.width = '0%';
+      document.getElementById('charge-text').textContent = '准备就绪';
+    }
   }
   
   render() {
@@ -771,19 +1075,11 @@ class PlanetAnnihilator {
     this.ctx.arc(planet.x + 5, planet.y + 5, planet.radius, 0, Math.PI * 2);
     this.ctx.fill();
     
-    // Planet base
-    const gradient = this.ctx.createRadialGradient(
-      planet.x - planet.radius * 0.3, planet.y - planet.radius * 0.3, 0,
-      planet.x, planet.y, planet.radius
-    );
-    gradient.addColorStop(0, planet.color);
-    gradient.addColorStop(0.7, planet.secondaryColor);
-    gradient.addColorStop(1, '#000000');
+    // Draw planet based on shape
+    this.drawPlanetShape(planet);
     
-    this.ctx.fillStyle = gradient;
-    this.ctx.beginPath();
-    this.ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
-    this.ctx.fill();
+    // Draw special features
+    this.drawPlanetFeatures(planet);
     
     // Draw craters
     this.drawCraters(planet);
@@ -801,6 +1097,227 @@ class PlanetAnnihilator {
     }
     
     this.ctx.restore();
+  }
+  
+  drawPlanetShape(planet) {
+    this.ctx.save();
+    
+    switch (planet.shape) {
+      case 'sphere':
+        this.drawSpherePlanet(planet);
+        break;
+      case 'gas_giant':
+        this.drawGasGiant(planet);
+        break;
+      case 'super_earth':
+        this.drawSuperEarth(planet);
+        break;
+      case 'moon':
+        this.drawMoon(planet);
+        break;
+      case 'tidally_locked':
+        this.drawTidallyLocked(planet);
+        break;
+      case 'crystalline':
+        this.drawCrystalline(planet);
+        break;
+      default:
+        this.drawSpherePlanet(planet);
+    }
+    
+    this.ctx.restore();
+  }
+  
+  drawSpherePlanet(planet) {
+    const gradient = this.ctx.createRadialGradient(
+      planet.x - planet.radius * 0.3, planet.y - planet.radius * 0.3, 0,
+      planet.x, planet.y, planet.radius
+    );
+    gradient.addColorStop(0, planet.color);
+    gradient.addColorStop(0.7, planet.secondaryColor);
+    gradient.addColorStop(1, planet.tertiaryColor || '#000000');
+    
+    this.ctx.fillStyle = gradient;
+    this.ctx.beginPath();
+    this.ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+    this.ctx.fill();
+  }
+  
+  drawGasGiant(planet) {
+    // Draw storm bands
+    for (let i = 0; i < planet.stormBands; i++) {
+      const bandY = planet.y - planet.radius + (planet.radius * 2 / planet.stormBands) * i;
+      const bandHeight = planet.radius * 2 / planet.stormBands;
+      
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.arc(planet.x, planet.y, planet.radius, 0, Math.PI * 2);
+      this.ctx.clip();
+      
+      const bandGradient = this.ctx.createLinearGradient(0, bandY, 0, bandY + bandHeight);
+      const intensity = Math.sin(i * 0.5) * 0.3 + 0.7;
+      bandGradient.addColorStop(0, this.adjustColor(planet.color, intensity));
+      bandGradient.addColorStop(1, this.adjustColor(planet.secondaryColor, intensity));
+      
+      this.ctx.fillStyle = bandGradient;
+      this.ctx.fillRect(planet.x - planet.radius, bandY, planet.radius * 2, bandHeight);
+      this.ctx.restore();
+    }
+    
+    // Great Red Spot
+    if (planet.greatRedSpot) {
+      this.ctx.fillStyle = '#cc0000';
+      this.ctx.beginPath();
+      this.ctx.ellipse(planet.x + planet.radius * 0.3, planet.y, planet.radius * 0.3, planet.radius * 0.15, 0, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+  }
+  
+  drawSuperEarth(planet) {
+    this.drawSpherePlanet(planet);
+    
+    // Draw continents
+    if (planet.continents) {
+      planet.continents.forEach(continent => {
+        const x = planet.x + Math.cos(continent.angle) * planet.radius * 0.7;
+        const y = planet.y + Math.sin(continent.angle) * planet.radius * 0.7;
+        
+        this.ctx.fillStyle = planet.tertiaryColor;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, planet.radius * continent.size * 0.3, 0, Math.PI * 2);
+        this.ctx.fill();
+      });
+    }
+  }
+  
+  drawMoon(planet) {
+    this.drawSpherePlanet(planet);
+    
+    // Add more craters for moon appearance
+    for (let i = 0; i < 8; i++) {
+      const angle = (Math.PI * 2 / 8) * i;
+      const x = planet.x + Math.cos(angle) * planet.radius * 0.6;
+      const y = planet.y + Math.sin(angle) * planet.radius * 0.6;
+      
+      this.ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      this.ctx.beginPath();
+      this.ctx.arc(x, y, planet.radius * 0.1, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+  }
+  
+  drawTidallyLocked(planet) {
+    // Day side
+    const dayGradient = this.ctx.createRadialGradient(
+      planet.x - planet.radius * 0.5, planet.y, 0,
+      planet.x, planet.y, planet.radius
+    );
+    dayGradient.addColorStop(0, planet.color);
+    dayGradient.addColorStop(1, planet.secondaryColor);
+    
+    this.ctx.fillStyle = dayGradient;
+    this.ctx.beginPath();
+    this.ctx.arc(planet.x, planet.y, planet.radius, -Math.PI/2, Math.PI/2);
+    this.ctx.fill();
+    
+    // Night side
+    const nightGradient = this.ctx.createRadialGradient(
+      planet.x + planet.radius * 0.5, planet.y, 0,
+      planet.x, planet.y, planet.radius
+    );
+    nightGradient.addColorStop(0, '#000000');
+    nightGradient.addColorStop(1, planet.tertiaryColor);
+    
+    this.ctx.fillStyle = nightGradient;
+    this.ctx.beginPath();
+    this.ctx.arc(planet.x, planet.y, planet.radius, Math.PI/2, -Math.PI/2);
+    this.ctx.fill();
+  }
+  
+  drawCrystalline(planet) {
+    // Base crystal structure
+    this.ctx.fillStyle = planet.color;
+    this.ctx.beginPath();
+    
+    const sides = 8;
+    for (let i = 0; i < sides; i++) {
+      const angle = (Math.PI * 2 / sides) * i;
+      const x = planet.x + Math.cos(angle) * planet.radius;
+      const y = planet.y + Math.sin(angle) * planet.radius;
+      
+      if (i === 0) {
+        this.ctx.moveTo(x, y);
+      } else {
+        this.ctx.lineTo(x, y);
+      }
+    }
+    this.ctx.closePath();
+    this.ctx.fill();
+    
+    // Crystal formations
+    for (let i = 0; i < planet.crystalFormations; i++) {
+      const angle = (Math.PI * 2 / planet.crystalFormations) * i;
+      const x = planet.x + Math.cos(angle) * planet.radius * 0.8;
+      const y = planet.y + Math.sin(angle) * planet.radius * 0.8;
+      
+      this.ctx.fillStyle = planet.secondaryColor;
+      this.ctx.beginPath();
+      this.ctx.moveTo(x, y);
+      this.ctx.lineTo(x + Math.cos(angle) * 20, y + Math.sin(angle) * 20);
+      this.ctx.lineTo(x + Math.cos(angle + 0.5) * 15, y + Math.sin(angle + 0.5) * 15);
+      this.ctx.closePath();
+      this.ctx.fill();
+    }
+  }
+  
+  drawPlanetFeatures(planet) {
+    // Polar caps for Mars
+    if (planet.polarCaps) {
+      this.ctx.fillStyle = '#ffffff';
+      this.ctx.beginPath();
+      this.ctx.arc(planet.x, planet.y - planet.radius * 0.8, planet.radius * 0.2, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.beginPath();
+      this.ctx.arc(planet.x, planet.y + planet.radius * 0.8, planet.radius * 0.15, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+    
+    // Cloud layers for Venus
+    if (planet.cloudLayers) {
+      for (let i = 0; i < planet.cloudLayers; i++) {
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.3;
+        this.ctx.strokeStyle = '#ffff99';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.arc(planet.x, planet.y, planet.radius + i * 8, 0, Math.PI * 2);
+        this.ctx.stroke();
+        this.ctx.restore();
+      }
+    }
+    
+    // Methane lakes for Titan
+    if (planet.methaneLakes) {
+      for (let i = 0; i < 5; i++) {
+        const angle = (Math.PI * 2 / 5) * i;
+        const x = planet.x + Math.cos(angle) * planet.radius * 0.6;
+        const y = planet.y + Math.sin(angle) * planet.radius * 0.6;
+        
+        this.ctx.fillStyle = '#003366';
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, planet.radius * 0.15, 0, Math.PI * 2);
+        this.ctx.fill();
+      }
+    }
+  }
+  
+  adjustColor(color, intensity) {
+    // Simple color adjustment function
+    const r = parseInt(color.slice(1, 3), 16);
+    const g = parseInt(color.slice(3, 5), 16);
+    const b = parseInt(color.slice(5, 7), 16);
+    
+    return `rgb(${Math.floor(r * intensity)}, ${Math.floor(g * intensity)}, ${Math.floor(b * intensity)})`;
   }
   
   drawCraters(planet) {
@@ -904,6 +1421,7 @@ class PlanetAnnihilator {
     this.updateCounterAttacks();
     this.updateParticles();
     this.updatePlanetSystems();
+    this.updateWeaponCharge();
     this.render();
     
     requestAnimationFrame(() => this.gameLoop());
