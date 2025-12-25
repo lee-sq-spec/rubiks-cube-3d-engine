@@ -66,20 +66,33 @@ body {
 #weapon-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  max-width: 200px;
+  gap: 6px;
+  max-width: 220px;
 }
 
 .weapon-btn {
   background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
   border: 1px solid var(--accent-color);
   color: var(--text-color);
-  padding: 8px 12px;
+  padding: 6px 8px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 10px;
   transition: all 0.3s ease;
   font-family: inherit;
+  position: relative;
+  overflow: hidden;
+}
+
+.weapon-btn::after {
+  content: attr(data-activation);
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 8px;
+  opacity: 0.6;
+  color: var(--accent-color);
+  text-transform: uppercase;
 }
 
 .weapon-btn:hover {
@@ -138,25 +151,67 @@ body {
 
 #planet-selector {
   position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 100;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: 80vw;
+}
+
+#weapon-charge {
+  position: absolute;
   bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
+  align-items: center;
   gap: 10px;
+  background: rgba(26, 26, 46, 0.9);
+  border: 2px solid var(--accent-color);
+  border-radius: 8px;
+  padding: 8px 15px;
+  backdrop-filter: blur(10px);
   z-index: 100;
+}
+
+#charge-bar {
+  width: 120px;
+  height: 8px;
+  background: rgba(255, 107, 53, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--accent-color);
+}
+
+#charge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-color), #ff8c5a);
+  width: 0%;
+  transition: width 0.1s ease;
+}
+
+#charge-text {
+  font-size: 12px;
+  color: var(--text-color);
+  min-width: 80px;
 }
 
 .planet-btn {
   background: linear-gradient(145deg, #2a2a3e, #1a1a2e);
   border: 2px solid var(--accent-color);
   color: var(--text-color);
-  padding: 12px 20px;
+  padding: 8px 12px;
   border-radius: 8px;
   cursor: pointer;
   font-family: inherit;
-  font-size: 12px;
+  font-size: 10px;
   transition: all 0.3s ease;
   backdrop-filter: blur(10px);
+  white-space: nowrap;
 }
 
 .planet-btn:hover {
