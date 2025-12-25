@@ -2,390 +2,452 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>极客专业版 3D 魔方 (3x3 - 12x12)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planet Annihilator: Divine Edition</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root { --primary: #007aff; --bg: #050505; --card: rgba(30, 30, 30, 0.9); }
-        body { margin: 0; overflow: hidden; background: var(--bg); font-family: -apple-system, system-ui, sans-serif; color: white; }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+        body { margin: 0; overflow: hidden; background: #000; color: #fff; font-family: 'Orbitron', sans-serif; cursor: none; }
+        canvas { display: block; }
         
-        /* 界面层 */
-        #ui-layer { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
-        #ui-layer * { pointer-events: auto; }
-
-        /* 主页选择区 */
-        #home-screen {
-            position: absolute; inset: 0; background: rgba(0,0,0,0.8);
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            backdrop-filter: blur(15px); transition: 0.5s;
+        /* 准星 */
+        #crosshair {
+            position: fixed; width: 40px; height: 40px; border: 2px solid rgba(255,0,0,0.5);
+            border-radius: 50%; pointer-events: none; transform: translate(-50%, -50%); z-index: 9999;
+            display: flex; align-items: center; justify-content: center; transition: 0.1s;
         }
+        #crosshair::after { content: ''; width: 4px; height: 4px; background: red; border-radius: 50%; }
 
-        .menu { background: var(--card); padding: 40px; border-radius: 24px; text-align: center; border: 1px solid #333; width: 320px; }
-        .mode-btn { 
-            width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 12px;
-            font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; color: white;
-        }
-        .mode-classic { background: #444; }
-        .mode-timer { background: #d35400; }
-        .mode-assist { background: #27ae60; }
-        .mode-btn:hover { transform: translateY(-2px); filter: brightness(1.2); }
+        /* 侧边栏 */
+        .weapon-sidebar { width: 420px; position: fixed; right: -360px; top: 0; bottom: 0; z-index: 1000; transition: 0.5s cubic-bezier(0.19, 1, 0.22, 1); background: rgba(5,5,15,0.8); backdrop-filter: blur(15px); border-left: 1px solid rgba(255,255,255,0.1); }
+        .weapon-sidebar:hover { right: 0; }
+        .sidebar-tag { position: absolute; left: 0; top: 0; bottom: 0; width: 60px; display: flex; align-items: center; justify-content: center; background: linear-gradient(to bottom, transparent, #ff4444, transparent); cursor: pointer; }
+        .tag-text { writing-mode: vertical-rl; font-weight: 900; letter-spacing: 5px; color: #fff; }
 
-        select { width: 100%; padding: 12px; border-radius: 8px; background: #222; color: white; border: 1px solid #444; margin: 15px 0; cursor: pointer; }
+        .weapon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 15px; height: calc(100% - 200px); overflow-y: auto; }
+        .weapon-item { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 10px; cursor: pointer; text-align: center; transition: 0.2s; }
+        .weapon-item:hover { background: rgba(255,68,68,0.2); border-color: #ff4444; }
+        .weapon-item.active { border-color: #ff4444; background: rgba(255,68,68,0.3); box-shadow: 0 0 15px rgba(255,68,68,0.4); }
 
-        /* HUD 抬头显示 */
-        #hud {
-            position: absolute; top: 0; width: 100%; padding: 20px;
-            display: flex; justify-content: space-between; box-sizing: border-box;
-            background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-        }
-        .stat-item { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 20px; font-variant-numeric: tabular-nums; }
+        /* 行星环形HUD */
+        #hud-container { position: fixed; inset: 0; pointer-events: none; z-index: 500; }
+        .arc-data { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 800px; height: 800px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.05); }
+        .data-box { position: absolute; background: rgba(0,0,0,0.6); padding: 10px 20px; border-left: 4px solid #ff4444; }
 
-        /* 辅助模式步骤面板 */
-        #assist-panel {
-            position: absolute; right: 20px; top: 100px; width: 150px;
-            background: var(--card); border-radius: 15px; padding: 15px; display: none;
-        }
-        .step-item { padding: 8px; border-bottom: 1px solid #333; font-size: 14px; cursor: pointer; color: #aaa; }
-        .step-item.active { color: #fff; font-weight: bold; background: rgba(255,255,255,0.1); }
-
-        .hidden { display: none !important; }
-        #win-msg {
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            font-size: 48px; font-weight: 900; text-shadow: 0 0 20px rgba(0,255,0,0.5);
-            pointer-events: none; opacity: 0;
-        }
+        /* 屏幕反馈 */
+        #screen-fx { position: fixed; inset: 0; pointer-events: none; z-index: 2000; transition: 0.3s; }
+        .hit-shake { animation: shake 0.2s infinite; }
+        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-2px, -2px); } 100% { transform: translate(0,0); } }
     </style>
 </head>
 <body>
 
-<div id="ui-layer">
-    <div id="home-screen">
-        <div class="menu">
-            <h1 style="margin-bottom: 5px;">RUBIK PRO</h1>
-            <p style="color: #888; margin-top: 0;">3D 高阶交互魔方</p>
-            
-            <label style="display: block; text-align: left; font-size: 12px; color: #666;">选择尺寸</label>
-            <select id="size-select">
-                <option value="3">3x3x3 (经典)</option>
-                <option value="4">4x4x4</option>
-                <option value="5">5x5x5</option>
-                <option value="8">8x8x8</option>
-                <option value="12">12x12x12 (极限性能)</option>
-            </select>
+<div id="crosshair"></div>
+<div id="screen-fx"></div>
 
-            <button class="mode-btn mode-classic" onclick="game.start('classic')">CLASSIC 玩法</button>
-            <button class="mode-btn mode-timer" onclick="game.start('timer')">TIMER 计时挑战</button>
-            <button class="mode-btn mode-assist" onclick="game.start('assist')">ASSIST 辅助复原</button>
+<div id="hud-container">
+    <div class="arc-data">
+        <div class="data-box" style="top: 20%; left: -100px;">
+            <div class="text-[10px] text-gray-400">POPULATION</div>
+            <div id="val-pop" class="text-3xl font-black text-blue-400">8.00 B</div>
+        </div>
+        <div class="data-box" style="top: 20%; right: -100px; border-left: 0; border-right: 4px solid #ff4444; text-align: right;">
+            <div class="text-[10px] text-gray-400">INTEGRITY</div>
+            <div id="val-hp" class="text-3xl font-black text-red-500">100%</div>
+        </div>
+        <div id="planet-info" class="absolute bottom-[-100px] left-1/2 -translate-x-1/2 text-center">
+            <h1 id="p-name" class="text-7xl font-black italic tracking-tighter uppercase opacity-20">EARTH</h1>
         </div>
     </div>
-
-    <div id="hud" class="hidden">
-        <div class="stat-item" id="hud-mode">MODE: CLASSIC</div>
-        <div class="stat-item" id="hud-timer">00:00:00</div>
-        <div class="stat-item" id="hud-moves">MOVES: 0</div>
-        <button onclick="game.quit()" style="background:none; border: 1px solid #555; color: white; border-radius: 15px; padding: 5px 15px; cursor:pointer;">退出</button>
-    </div>
-
-    <div id="assist-panel">
-        <div style="font-size: 12px; color: #666; margin-bottom: 10px;">复原步骤 (演示)</div>
-        <div id="steps-list"></div>
-    </div>
-
-    <div id="win-msg">COMPLETED!</div>
 </div>
 
-<div id="container"></div>
+<div class="weapon-sidebar">
+    <div class="sidebar-tag"><div class="tag-text">ARSENAL AR-X</div></div>
+    <div class="p-8 pb-4 ml-12">
+        <h2 class="text-2xl font-black italic">毁灭实验室</h2>
+        <div class="h-1 w-20 bg-red-600 mt-2"></div>
+    </div>
+    <div class="weapon-grid" id="weapon-grid"></div>
+    <div class="p-6 ml-12 bg-black/40 border-t border-white/10">
+        <div id="w-name" class="text-red-500 font-bold uppercase">---</div>
+        <div id="w-desc" class="text-[10px] text-gray-400 mt-1 leading-tight">等待授权...</div>
+    </div>
+</div>
 
-<script>
-/**
- * 极客魔方核心逻辑引擎
- */
-const game = {
-    // 基础组件
-    scene: null, camera: null, renderer: null,
-    cubes: [], dimension: 3, 
-    group: null, // 旋转组
+<script type="module">
+    // --- 核心配置 ---
+    const WEAPON_TYPES = { PROJECTILE: 0, BEAM: 1, FIELD: 2 };
     
-    // 状态
-    mode: 'classic',
-    isAnimating: false,
-    moves: 0,
-    time: 0,
-    timerInt: null,
-    
-    // 交互逻辑变量
-    raycaster: new THREE.Raycaster(),
-    mouse: new THREE.Vector2(),
-    isPointerDown: false,
-    pointerStart: new THREE.Vector2(),
-    intersectedPiece: null, // 被点击的小方块
-    intersectedNormal: null, // 被点击的面法向量
-    
-    init() {
-        this.scene = new THREE.Scene();
-        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.1, 1000);
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        document.getElementById('container').appendChild(this.renderer.domElement);
+    const PLANETS = [
+        { id: 'earth', name: '地球', color: 0x2266ff, hp: 2000, pop: 8.0, counter: 'satellite_beam', shieldColor: 0x00f2ff },
+        { id: 'mars', name: '火星', color: 0xcc4422, hp: 1500, pop: 0.1, counter: 'dust_storm', shieldColor: 0xffaa00 },
+        { id: 'jupiter', name: '木星', color: 0xffaa66, hp: 8000, pop: 0, counter: 'gravity_mine', shieldColor: 0xff00ff },
+        { id: 'hell', name: '地狱星', color: 0xff2200, hp: 4000, pop: 0, counter: 'solar_flare', shieldColor: 0xff4400 }
+    ];
 
-        const ambient = new THREE.AmbientLight(0xffffff, 0.8);
-        this.scene.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffff, 0.4);
-        sun.position.set(10, 20, 10);
-        this.scene.add(sun);
+    const WEAPONS = [
+        { id: 'missile', name: '追踪导弹', icon: '🚀', type: WEAPON_TYPES.PROJECTILE, pwr: 50, speed: 0.8, color: 0xff6600, desc: '自动修正轨道的物理弹头，造成地表坑洞。' },
+        { id: 'heavy_laser', name: '重粒子炮', icon: '⚡', type: WEAPON_TYPES.BEAM, pwr: 15, speed: 1.0, color: 0x00ffff, desc: '持续性高能束，产生地表烧灼纹路。' },
+        { id: 'meteor', name: '引力陨石', icon: '☄️', type: WEAPON_TYPES.PROJECTILE, pwr: 200, speed: 0.4, color: 0x888888, desc: '巨型动能打击，产生大量溅射碎片。' },
+        { id: 'blackhole', name: '微型奇点', icon: '🕳️', type: WEAPON_TYPES.FIELD, pwr: 10, speed: 0.1, color: 0xaa00ff, desc: '持续吸附并坍缩地表物质。' },
+        { id: 'freeze', name: '寒冬射线', icon: '❄️', type: WEAPON_TYPES.BEAM, pwr: 10, speed: 1.0, color: 0x88ffff, desc: '冻结目标区域，碎片呈现结晶状。' },
+        { id: 'emp', name: '电磁冲击', icon: '📡', type: WEAPON_TYPES.FIELD, pwr: 100, speed: 2.0, color: 0xffff00, desc: '瞬间摧毁护盾，击飞地表松散物质。' }
+    ];
 
-        this.camera.position.set(10, 10, 15);
-        this.camera.lookAt(0,0,0);
+    // --- 游戏引擎状态 ---
+    let scene, camera, renderer, planet, atmosphere, shield;
+    let projectiles = [], fragments = [], counterObjects = [], beams = [];
+    let state = { currentPlanet: PLANETS[0], currentWeapon: WEAPONS[0], hp: 2000, maxHp: 2000, pop: 8.0, anger: 0 };
 
-        // 事件监听
-        window.addEventListener('mousedown', e => this.onDown(e));
-        window.addEventListener('mousemove', e => this.onMove(e));
-        window.addEventListener('mouseup', e => this.onUp(e));
-        window.addEventListener('touchstart', e => this.onDown(e.touches[0]), {passive: false});
-        window.addEventListener('touchmove', e => this.onMove(e.touches[0]), {passive: false});
-        window.addEventListener('touchend', e => this.onUp(), {passive: false});
-        window.addEventListener('resize', () => this.onResize());
+    // --- 初始化 ---
+    function init() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
+        camera.position.set(0, 5, 30);
 
-        this.render();
-    },
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.body.appendChild(renderer.domElement);
 
-    start(mode) {
-        this.mode = mode;
-        this.dimension = parseInt(document.getElementById('size-select').value);
-        this.moves = 0;
-        this.time = 0;
-        
-        document.getElementById('home-screen').classList.add('hidden');
-        document.getElementById('hud').classList.remove('hidden');
-        document.getElementById('hud-mode').innerText = `MODE: ${mode.toUpperCase()}`;
-        document.getElementById('hud-moves').innerText = `MOVES: 0`;
+        const amb = new THREE.AmbientLight(0xffffff, 0.3);
+        scene.add(amb);
+        const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+        sun.position.set(100, 100, 50);
+        scene.add(sun);
 
-        this.createCube();
-        if(mode === 'timer') this.startTimer();
-        if(mode === 'assist') this.setupAssist();
-    },
+        loadPlanet(PLANETS[0]);
+        setupUI();
+        animate();
 
-    createCube() {
-        if(this.cubes.length) {
-            this.cubes.forEach(c => this.scene.remove(c));
-            this.cubes = [];
-        }
-
-        const n = this.dimension;
-        const offset = (n - 1) / 2;
-        const geom = new THREE.BoxGeometry(0.95, 0.95, 0.95);
-        
-        // 经典魔方配色
-        const colors = [0xffffff, 0xb71234, 0x0046ad, 0x009b48, 0xff5800, 0xffd500];
-
-        for(let x=0; x<n; x++) {
-            for(let y=0; y<n; y++) {
-                for(let z=0; z<n; z++) {
-                    // 只渲染外层减少计算量 (Step 17 优化)
-                    if(x===0 || x===n-1 || y===0 || y === n-1 || z===0 || z===n-1) {
-                        const mats = colors.map(c => new THREE.MeshPhongMaterial({ color: c }));
-                        const cube = new THREE.Mesh(geom, mats);
-                        cube.position.set(x - offset, y - offset, z - offset);
-                        cube.userData = { initialPos: cube.position.clone() };
-                        this.scene.add(cube);
-                        this.cubes.push(cube);
-                    }
-                }
-            }
-        }
-        
-        // 视角根据尺寸自动调整
-        const zoom = n * 2.5;
-        gsap.to(this.camera.position, { x: zoom, y: zoom, z: zoom, duration: 1 });
-    },
-
-    /**
-     * 手势交互系统 (Step 4)
-     * 核心原理：通过起始点击点和滑动向量与相机平面的投影夹角来判断旋转轴
-     */
-    onDown(e) {
-        this.isPointerDown = true;
-        this.pointerStart.set(e.clientX, e.clientY);
-        
-        this.mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-        this.mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
-        
-        this.raycaster.setFromCamera(this.mouse, this.camera);
-        const intersects = this.raycaster.intersectObjects(this.cubes);
-        
-        if(intersects.length > 0) {
-            this.intersectedPiece = intersects[0].object;
-            this.intersectedNormal = intersects[0].face.normal.clone();
-            this.intersectedNormal.applyQuaternion(this.intersectedPiece.quaternion);
-        } else {
-            this.intersectedPiece = null;
-        }
-    },
-
-    onMove(e) {
-        if(!this.isPointerDown || this.isAnimating) return;
-        
-        const dragX = e.clientX - this.pointerStart.x;
-        const dragY = e.clientY - this.pointerStart.y;
-        const distance = Math.sqrt(dragX*dragX + dragY*dragY);
-
-        if(distance > 30 && this.intersectedPiece) {
-            this.handleSwipe(dragX, dragY);
-            this.isPointerDown = false; // 触发一次旋转后重置
-        } else if(distance > 5 && !this.intersectedPiece) {
-            // 背景滑动：旋转整个视野
-            this.scene.rotation.y += dragX * 0.01;
-            this.scene.rotation.x += dragY * 0.01;
-            this.pointerStart.set(e.clientX, e.clientY);
-        }
-    },
-
-    onUp() {
-        this.isPointerDown = false;
-    },
-
-    handleSwipe(dx, dy) {
-        const normal = this.intersectedNormal;
-        const pos = this.intersectedPiece.position;
-        
-        // 将屏幕滑动向量转为 3D 空间向量判断
-        let moveDir = new THREE.Vector3();
-        if(Math.abs(dx) > Math.abs(dy)) {
-            // 水平滑动
-            moveDir.set(dx > 0 ? 1 : -1, 0, 0);
-        } else {
-            // 垂直滑动
-            moveDir.set(0, dy > 0 ? -1 : 1, 0);
-        }
-
-        // 根据点击的面和滑动方向决定旋转轴
-        let axis = '';
-        let coord = 0;
-
-        if (Math.abs(normal.y) > 0.5) { // 点击顶/底面
-            axis = Math.abs(dx) > Math.abs(dy) ? 'z' : 'x';
-            coord = axis === 'x' ? pos.x : pos.z;
-        } else if (Math.abs(normal.x) > 0.5) { // 点击侧面 X
-            axis = Math.abs(dx) > Math.abs(dy) ? 'z' : 'y';
-            coord = axis === 'y' ? pos.y : pos.z;
-        } else { // 点击侧面 Z
-            axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-            coord = axis === 'y' ? pos.y : pos.x;
-        }
-
-        this.rotateLayer(axis, coord, (dx + dy) > 0 ? 1 : -1);
-    },
-
-    rotateLayer(axis, coord, dir) {
-        if(this.isAnimating) return;
-        this.isAnimating = true;
-        
-        const layerGroup = new THREE.Group();
-        const eps = 0.1;
-        const targets = this.cubes.filter(c => Math.abs(c.position[axis] - coord) < eps);
-        
-        targets.forEach(t => layerGroup.add(t));
-        this.scene.add(layerGroup);
-
-        const targetRot = { x: 0, y: 0, z: 0 };
-        targetRot[axis] = (Math.PI / 2) * dir;
-
-        // 磁吸手感优化 (Step 9)
-        gsap.to(layerGroup.rotation, {
-            x: targetRot.x, y: targetRot.y, z: targetRot.z,
-            duration: 0.4,
-            ease: "back.out(1.4)",
-            onComplete: () => {
-                targets.forEach(t => {
-                    const wp = new THREE.Vector3();
-                    const wq = new THREE.Quaternion();
-                    t.getWorldPosition(wp);
-                    t.getWorldQuaternion(wq);
-                    
-                    this.scene.add(t);
-                    t.position.copy(wp);
-                    t.quaternion.copy(wq);
-                    
-                    // 精度修复 (Step 13)
-                    t.position.set(Math.round(t.position.x), Math.round(t.position.y), Math.round(t.position.z));
-                });
-                this.scene.remove(layerGroup);
-                this.isAnimating = false;
-                this.moves++;
-                document.getElementById('hud-moves').innerText = `MOVES: ${this.moves}`;
-                this.checkWin();
-            }
+        window.addEventListener('mousemove', e => {
+            const cross = document.getElementById('crosshair');
+            cross.style.left = e.clientX + 'px';
+            cross.style.top = e.clientY + 'px';
         });
-    },
 
-    /**
-     * 辅助模式功能 (Step 7)
-     */
-    setupAssist() {
-        const panel = document.getElementById('assist-panel');
-        const list = document.getElementById('steps-list');
-        panel.style.display = 'block';
-        list.innerHTML = '';
-        
-        const demoSteps = ["R (右顺时针)", "U (上顺时针)", "L' (左逆时针)", "F2 (前旋转180)", "D (底顺时针)"];
-        demoSteps.forEach((s, i) => {
-            const div = document.createElement('div');
-            div.className = 'step-item';
-            div.innerText = `${i+1}. ${s}`;
-            div.onclick = () => {
-                document.querySelectorAll('.step-item').forEach(el => el.classList.remove('active'));
-                div.classList.add('active');
-                this.rotateLayer('y', (this.dimension-1)/2, 1); // 模拟动作
-                if(i === demoSteps.length - 1) setTimeout(()=>alert("复原完成！"), 600);
-            };
-            list.appendChild(div);
-        });
-    },
-
-    /**
-     * 工具函数
-     */
-    startTimer() {
-        clearInterval(this.timerInt);
-        this.startTime = Date.now();
-        this.timerInt = setInterval(() => {
-            const diff = Date.now() - this.startTime;
-            const ms = Math.floor(diff % 1000 / 10);
-            const s = Math.floor(diff / 1000 % 60);
-            const m = Math.floor(diff / 60000 % 60);
-            document.getElementById('hud-timer').innerText = 
-                `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}:${ms.toString().padStart(2,'0')}`;
-        }, 30);
-    },
-
-    checkWin() {
-        // 复原检测简化：如果模式不是辅助且移动次数多
-        if(this.moves > 0 && this.mode !== 'assist') {
-            // 在实际项目中，这里应遍历所有 cubes 检查 rotation.equals 和 position
-        }
-    },
-
-    quit() {
-        location.reload();
-    },
-
-    onResize() {
-        this.camera.aspect = window.innerWidth / window.innerHeight;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-    },
-
-    render() {
-        requestAnimationFrame(() => this.render());
-        this.renderer.render(this.scene, this.camera);
+        window.addEventListener('mousedown', onFire);
+        window.addEventListener('resize', onResize);
     }
-};
 
-// 启动
-window.onload = () => game.init();
+    function loadPlanet(config) {
+        if(planet) scene.remove(planet);
+        if(atmosphere) scene.remove(atmosphere);
+        if(shield) scene.remove(shield);
+
+        // 星球主体
+        const geo = new THREE.SphereGeometry(8, 128, 128);
+        const mat = new THREE.MeshStandardMaterial({
+            color: config.color,
+            roughness: 0.8,
+            metalness: 0.2,
+            emissive: config.color,
+            emissiveIntensity: 0.1
+        });
+        planet = new THREE.Mesh(geo, mat);
+        scene.add(planet);
+
+        // 大气层
+        const atmGeo = new THREE.SphereGeometry(8.4, 64, 64);
+        const atmMat = new THREE.MeshPhongMaterial({
+            color: config.color,
+            transparent: true,
+            opacity: 0.15,
+            side: THREE.BackSide
+        });
+        atmosphere = new THREE.Mesh(atmGeo, atmMat);
+        scene.add(atmosphere);
+
+        // 护盾
+        const shdGeo = new THREE.SphereGeometry(9.5, 32, 32);
+        const shdMat = new THREE.MeshBasicMaterial({
+            color: config.shieldColor,
+            wireframe: true,
+            transparent: true,
+            opacity: 0.1
+        });
+        shield = new THREE.Mesh(shdGeo, shdMat);
+        scene.add(shield);
+
+        state.currentPlanet = config;
+        state.hp = config.hp;
+        state.maxHp = config.hp;
+        state.pop = config.pop;
+        state.anger = 0;
+        
+        document.getElementById('p-name').innerText = config.name;
+        document.getElementById('p-name').style.color = `#${config.color.toString(16)}`;
+        updateHUD();
+    }
+
+    // --- 武器发射系统 ---
+    function onFire(e) {
+        if(e.clientX > window.innerWidth - 360) return;
+
+        const mouse = new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
+        const ray = new THREE.Raycaster();
+        ray.setFromCamera(mouse, camera);
+        
+        const w = state.currentWeapon;
+        
+        // 1. 投射物模式 (导弹, 陨石)
+        if(w.type === WEAPON_TYPES.PROJECTILE) {
+            const startPos = new THREE.Vector3((Math.random()-0.5)*50, 20, 30);
+            const targetPos = new THREE.Vector3();
+            
+            // 获取打击点
+            const hits = ray.intersectObject(planet);
+            if(hits.length > 0) {
+                targetPos.copy(hits[0].point);
+                spawnProjectile(w, startPos, targetPos);
+            }
+        } 
+        // 2. 射线模式 (激光, 冰冻)
+        else if(w.type === WEAPON_TYPES.BEAM) {
+            const hits = ray.intersectObject(planet);
+            if(hits.length > 0) {
+                executeBeam(w, hits[0].point);
+            }
+        }
+        // 3. 场效应模式 (黑洞)
+        else if(w.type === WEAPON_TYPES.FIELD) {
+            const hits = ray.intersectObject(planet);
+            if(hits.length > 0) {
+                executeField(w, hits[0].point);
+            }
+        }
+    }
+
+    function spawnProjectile(w, start, target) {
+        const geo = w.id === 'missile' ? new THREE.CylinderGeometry(0.1, 0.1, 1) : new THREE.SphereGeometry(1.5, 16, 16);
+        const mat = new THREE.MeshBasicMaterial({ color: w.color });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.copy(start);
+        mesh.lookAt(target);
+        if(w.id === 'missile') mesh.rotateX(Math.PI/2);
+        
+        scene.add(mesh);
+        projectiles.push({ mesh, target, weapon: w, life: 1.0 });
+    }
+
+    function executeBeam(w, target) {
+        const source = new THREE.Vector3(target.x*1.5, 40, target.z*1.5);
+        const points = [source, target];
+        const geo = new THREE.BufferGeometry().setFromPoints(points);
+        const mat = new THREE.LineBasicMaterial({ color: w.color, linewidth: 3 });
+        const line = new THREE.Line(geo, mat);
+        scene.add(line);
+        beams.push({ mesh: line, life: 0.1 });
+        
+        handleImpact(target, w);
+    }
+
+    function executeField(w, pos) {
+        if(w.id === 'blackhole') {
+            const hole = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), new THREE.MeshBasicMaterial({color: 0x000000}));
+            hole.position.copy(pos);
+            scene.add(hole);
+            
+            const ring = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.1, 16, 100), new THREE.MeshBasicMaterial({color: w.color, transparent: true}));
+            ring.position.copy(pos);
+            ring.lookAt(camera.position);
+            scene.add(ring);
+            
+            const anim = () => {
+                ring.rotation.z += 0.2;
+                ring.scale.multiplyScalar(0.98);
+                if(ring.scale.x > 0.1) requestAnimationFrame(anim);
+                else { scene.remove(hole); scene.remove(ring); }
+            };
+            anim();
+            handleImpact(pos, w);
+        }
+    }
+
+    // --- 真实伤害与视觉反馈 ---
+    function handleImpact(pos, w) {
+        applyDamage(w.pwr);
+        
+        // 1. 地表形变 (视觉模拟)
+        deformSurface(pos, w);
+
+        // 2. 碎片产生 (根据武器类型有不同外观)
+        const fragCount = w.id === 'meteor' ? 40 : 15;
+        const fragColor = w.id === 'freeze' ? 0x88ffff : (w.id === 'missile' ? 0xff6600 : state.currentPlanet.color);
+        
+        for(let i=0; i<fragCount; i++) {
+            const size = Math.random() * 0.3;
+            const fragGeo = w.id === 'freeze' ? new THREE.IcosahedronGeometry(size, 0) : new THREE.BoxGeometry(size, size, size);
+            const fragMat = new THREE.MeshBasicMaterial({ color: fragColor, transparent: true });
+            const frag = new THREE.Mesh(fragGeo, fragMat);
+            
+            frag.position.copy(pos);
+            const vel = new THREE.Vector3((Math.random()-0.5)*1.5, (Math.random()-0.5)*1.5, (Math.random()-0.5)*1.5);
+            if(w.id === 'blackhole') vel.multiplyScalar(-1); // 吸入效果
+            
+            scene.add(frag);
+            fragments.push({ mesh: frag, vel, life: 1.0, type: w.id });
+        }
+
+        // 3. 屏幕抖动
+        if(w.pwr > 100) {
+            document.body.classList.add('hit-shake');
+            setTimeout(() => document.body.classList.remove('hit-shake'), 200);
+        }
+    }
+
+    function deformSurface(pos, w) {
+        // 修改星球网格顶点位置 (简化实现)
+        const position = planet.geometry.attributes.position;
+        const v = new THREE.Vector3();
+        const distLimit = w.id === 'meteor' ? 5 : 2;
+        
+        for (let i = 0; i < position.count; i++) {
+            v.fromBufferAttribute(position, i);
+            const worldV = v.clone().applyMatrix4(planet.matrixWorld);
+            const dist = worldV.distanceTo(pos);
+            if(dist < distLimit) {
+                const force = (distLimit - dist) / distLimit;
+                // 陨石产生坑洞，黑洞产生塌陷
+                const depth = (w.id === 'meteor' || w.id === 'blackhole') ? -0.3 : -0.1;
+                v.multiplyScalar(1 + force * depth);
+                position.setXYZ(i, v.x, v.y, v.z);
+            }
+        }
+        position.needsUpdate = true;
+    }
+
+    // --- 行星自主反击系统 ---
+    function triggerPlanetCounter() {
+        const p = state.currentPlanet;
+        state.anger = 0;
+        
+        // 视觉提示
+        document.getElementById('screen-fx').style.boxShadow = `inset 0 0 100px ${p.shieldColor.toString(16)}`;
+        setTimeout(() => document.getElementById('screen-fx').style.boxShadow = 'none', 1000);
+
+        // 真实物理实体反击
+        const count = 5;
+        for(let i=0; i<count; i++) {
+            const startPos = planet.position.clone().add(new THREE.Vector3((Math.random()-0.5)*10, (Math.random()-0.5)*10, 0));
+            const targetPos = camera.position.clone().add(new THREE.Vector3((Math.random()-0.5)*20, (Math.random()-0.5)*20, -10));
+            
+            let geo, mat;
+            if(p.id === 'earth') {
+                geo = new THREE.CylinderGeometry(0.2, 0.2, 2);
+                mat = new THREE.MeshBasicMaterial({color: 0x00f2ff});
+            } else if(p.id === 'hell') {
+                geo = new THREE.SphereGeometry(1, 16, 16);
+                mat = new THREE.MeshBasicMaterial({color: 0xffaa00});
+            } else {
+                geo = new THREE.DodecahedronGeometry(0.8, 0);
+                mat = new THREE.MeshBasicMaterial({color: 0x888888});
+            }
+
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.copy(startPos);
+            mesh.lookAt(targetPos);
+            scene.add(mesh);
+            
+            counterObjects.push({ mesh, vel: targetPos.sub(startPos).normalize().multiplyScalar(0.5), life: 2.0 });
+        }
+    }
+
+    // --- 核心循环 ---
+    function animate() {
+        requestAnimationFrame(animate);
+        
+        if(planet) planet.rotation.y += 0.001;
+        if(shield) shield.rotation.y += 0.005;
+
+        // 处理弹药
+        for(let i=projectiles.length-1; i>=0; i--) {
+            const p = projectiles[i];
+            p.mesh.position.lerp(p.target, 0.1);
+            if(p.mesh.position.distanceTo(p.target) < 0.5) {
+                handleImpact(p.target, p.weapon);
+                scene.remove(p.mesh);
+                projectiles.splice(i, 1);
+            }
+        }
+
+        // 处理碎片
+        for(let i=fragments.length-1; i>=0; i--) {
+            const f = fragments[i];
+            f.mesh.position.add(f.vel);
+            f.life -= 0.02;
+            f.mesh.material.opacity = f.life;
+            if(f.life <= 0) {
+                scene.remove(f.mesh);
+                fragments.splice(i, 1);
+            }
+        }
+
+        // 处理反击物体
+        for(let i=counterObjects.length-1; i>=0; i--) {
+            const c = counterObjects[i];
+            c.mesh.position.add(c.vel);
+            c.life -= 0.01;
+            if(c.life <= 0) {
+                scene.remove(c.mesh);
+                counterObjects.splice(i, 1);
+            }
+        }
+
+        // 处理射线
+        for(let i=beams.length-1; i>=0; i--) {
+            const b = beams[i];
+            b.life -= 0.01;
+            if(b.life <= 0) {
+                scene.remove(b.mesh);
+                beams.splice(i, 1);
+            }
+        }
+
+        renderer.render(scene, camera);
+    }
+
+    // --- 辅助逻辑 ---
+    function applyDamage(dmg) {
+        state.hp -= dmg;
+        state.anger += dmg;
+        if(state.hp < 0) state.hp = 0;
+        if(state.anger > 500) triggerPlanetCounter();
+        updateHUD();
+    }
+
+    function updateHUD() {
+        const pct = (state.hp / state.maxHp) * 100;
+        document.getElementById('val-hp').innerText = Math.ceil(pct) + '%';
+        document.getElementById('val-pop').innerText = (state.pop * (pct/100)).toFixed(2) + ' B';
+    }
+
+    function setupUI() {
+        const grid = document.getElementById('weapon-grid');
+        WEAPONS.forEach(w => {
+            const el = document.createElement('div');
+            el.className = `weapon-item ${w.id === state.currentWeapon.id ? 'active' : ''}`;
+            el.innerHTML = `<div class="text-3xl">${w.icon}</div><div class="text-[9px] font-bold mt-1">${w.name}</div>`;
+            el.onclick = () => {
+                state.currentWeapon = w;
+                document.querySelectorAll('.weapon-item').forEach(x => x.classList.remove('active'));
+                el.classList.add('active');
+                document.getElementById('w-name').innerText = w.name;
+                document.getElementById('w-desc').innerText = w.desc;
+            };
+            grid.appendChild(el);
+        });
+        document.querySelector('.weapon-item').click();
+    }
+
+    function onResize() {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    window.onload = init;
 </script>
-
 </body>
 </html>
